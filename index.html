@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jumia SKU Finder Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;--surface:#18181f;--surface2:#22222d;--border:#2e2e3a;
+  --orange:#f68b1e;--orange-dim:#c06a10;--text:#f0eee8;--muted:#7e7e90;
+  --green:#2ecc71;--red:#e74c3c;--blue:#5b9cf6;--r:10px;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.logo{font-family:var(--mono);font-size:1.05em;font-weight:700;color:var(--orange);white-space:nowrap}
+.logo span{color:var(--muted)}
+.mode-toggle{display:flex;background:var(--surface2);border-radius:6px;padding:3px;gap:2px}
+.mbtn{padding:5px 13px;border-radius:4px;border:none;background:transparent;color:var(--muted);font-family:var(--sans);font-size:.78em;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.4px;transition:all .15s}
+.mbtn.active{background:var(--orange);color:#fff}
+.spacer{flex:1}
+.sbar{display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:.72em}
+.stat{display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.stat .v{color:var(--orange);font-weight:700;font-size:1.1em}
+.stat .l{color:var(--muted);font-size:.78em;text-transform:uppercase}
+.sep{width:1px;height:26px;background:var(--border)}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--orange);animation:pulse 1.1s ease-in-out infinite}
+.ldot:nth-child(2){animation-delay:.18s}.ldot:nth-child(3){animation-delay:.36s}
+@keyframes pulse{0%,100%{opacity:.2;transform:scale(.75)}50%{opacity:1;transform:scale(1.1)}}
+.ldr{display:none;align-items:center;gap:6px;font-size:.74em;color:var(--muted)}
+.ldr.on{display:flex}
+.app{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 53px);overflow:hidden}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.main{display:flex;flex-direction:column;overflow:hidden}
+.ss{padding:11px 13px;border-bottom:1px solid var(--border)}
+.sl{font-size:.67em;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px;display:block}
+.sr{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+select,input[type=text],input[type=number],textarea{
+  background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-family:var(--sans);font-size:.82em;padding:6px 9px;
+  outline:none;width:100%;-webkit-appearance:none;
+}
+select:focus,input:focus,textarea:focus{border-color:var(--orange)}
+select option{background:#22222d}
+textarea{resize:vertical;min-height:70px;font-family:var(--mono);font-size:.71em;line-height:1.55}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 13px;border-radius:7px;border:none;font-family:var(--sans);font-size:.79em;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;transition:all .15s}
+.btn-p{background:var(--orange);color:#fff}
+.btn-p:hover{background:var(--orange-dim)}
+.btn-s{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-s:hover{border-color:var(--orange);color:var(--orange)}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-g:hover{color:var(--text);border-color:var(--muted)}
+.btn-sm{padding:4px 9px;font-size:.73em}
+.btn:disabled{opacity:.3;pointer-events:none}
+.btn-w{width:100%}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px}
+.pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.pill{padding:3px 9px;border-radius:20px;font-size:.69em;font-weight:700;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s}
+.pill.on{background:var(--orange);border-color:var(--orange);color:#fff}
+.outs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.owrap{position:relative}
+.ocopy{position:absolute;top:3px;right:3px;font-size:.62em;padding:2px 7px;z-index:2}
+.toolbar{display:flex;align-items:center;gap:7px;padding:8px 13px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.kww{flex:1;min-width:140px;position:relative}
+.kww input{padding-right:65px}
+.kwb{position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:.69em;padding:4px 8px}
+.pw{flex:1;overflow-y:auto;padding:10px}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:8px}
+.pc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s,transform .15s}
+.pc:hover{border-color:var(--orange);transform:translateY(-2px)}
+.iw{position:relative;background:#111;aspect-ratio:1;overflow:hidden}
+.iw img{width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .3s}
+.iw img.ok{opacity:1}
+.iw .noi{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:2em}
+.bdg{position:absolute;font-size:.62em;font-weight:700;padding:2px 6px;border-radius:4px;color:#fff;top:5px;left:5px}
+.bdo{background:var(--orange)}
+.bdx{background:var(--blue);top:auto;bottom:5px;left:5px}
+.bdr{background:var(--red)}
+.bdof{background:#6c47ff;top:5px;right:5px;left:auto}
+.dbtn{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.8);border:none;color:#fff;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:5}
+.pc:hover .dbtn{opacity:1}
+.pi{padding:7px}
+.pn{font-size:.73em;font-weight:500;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px}
+.pb{font-size:.65em;color:var(--muted);margin-bottom:3px;font-family:var(--mono)}
+.pp{font-weight:700;font-size:.85em;color:var(--orange)}
+.po{font-size:.67em;color:var(--muted);text-decoration:line-through;margin-left:4px}
+.pr{font-size:.67em;color:#f9c74f;margin-top:2px}
+.ps{font-size:.64em;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.psk{font-family:var(--mono);font-size:.6em;color:var(--muted);margin-top:5px;padding-top:5px;border-top:1px solid var(--border);word-break:break-all}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);gap:10px;text-align:center;padding:40px}
+.empty .ico{font-size:2.6em;opacity:.22}
+.empty p{font-size:.87em;line-height:1.65;max-width:300px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 15px;font-size:.79em;color:var(--text);z-index:999;transform:translateY(60px);opacity:0;transition:all .25s}
+.toast.on{transform:translateY(0);opacity:1}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.er{border-color:var(--red);color:var(--red)}
+hr.d{border:none;border-top:1px solid var(--border);margin:6px 0}
+.pb-wrap{height:3px;background:var(--surface2);border-radius:3px;margin-top:6px;overflow:hidden}
+.pb-fill{height:100%;background:var(--orange);border-radius:3px;transition:width .3s;width:0}
+.note{font-size:.68em;color:var(--muted);line-height:1.5;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SKU<span>finder</span></div>
+  <div class="mode-toggle">
+    <button class="mbtn active" id="btn-find">Find</button>
+    <button class="mbtn" id="btn-preview">Preview</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="ldr" id="ldr"><div class="ldot"></div><div class="ldot"></div><div class="ldot"></div><span id="ldr-txt">Working…</span></div>
+  <div class="sbar">
+    <div class="stat"><span class="v" id="st-a">0</span><span class="l" id="st-al">Page</span></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="v" id="st-b">0</span><span class="l" id="st-bl">of</span></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="v" id="st-t">0</span><span class="l">found</span></div>
+  </div>
+</header>
+
+<div class="app">
+<div class="sidebar">
+
+  <!-- FIND -->
+  <div class="ss" id="find-panel">
+    <span class="sl">Country</span>
+    <select id="country">
+      <option value=".com.ng" selected>Nigeria (.com.ng)</option>
+      <option value=".com.eg">Egypt (.com.eg)</option>
+      <option value=".sn">Senegal (.sn)</option>
+      <option value=".com.tn">Tunisia (.com.tn)</option>
+      <option value=".ug">Uganda (.ug)</option>
+      <option value=".ma">Morocco (.ma)</option>
+      <option value=".co.ke">Kenya (.co.ke)</option>
+      <option value=".com.gh">Ghana (.com.gh)</option>
+      <option value=".ci">Ivory Coast (.ci)</option>
+      <option value=".com.dz">Algeria (.com.dz)</option>
+      <option value=".co.za">South Africa (.co.za)</option>
+    </select>
+    <span class="sl" style="margin-top:8px">Listing / MLP / Category URL</span>
+    <input type="text" id="url-in" placeholder="https://www.jumia.com.ng/mlp-samsung-store/" />
+    <div class="sr" style="margin-top:7px">
+      <input type="number" id="pg-no" placeholder="Pages" min="1" value="1" style="flex:1" />
+      <button class="btn btn-p" id="find-btn">Find</button>
+    </div>
+    <div class="note">Products are parsed directly from Jumia's listing HTML. Real SKU codes are resolved from each product's page in batches.</div>
+    <div class="pb-wrap"><div class="pb-fill" id="pb"></div></div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="ss" id="preview-panel" style="display:none">
+    <span class="sl">Country</span>
+    <select id="country2">
+      <option value=".com.ng" selected>Nigeria</option>
+      <option value=".com.eg">Egypt</option>
+      <option value=".sn">Senegal</option>
+      <option value=".com.tn">Tunisia</option>
+      <option value=".ug">Uganda</option>
+      <option value=".ma">Morocco</option>
+      <option value=".co.ke">Kenya</option>
+      <option value=".com.gh">Ghana</option>
+      <option value=".ci">Ivory Coast</option>
+      <option value=".com.dz">Algeria</option>
+      <option value=".co.za">South Africa</option>
+    </select>
+    <span class="sl" style="margin-top:8px">Paste SKUs (comma or newline)</span>
+    <textarea id="sku-in" placeholder="SA684EL1IHRFQNAFAMZ&#10;or SKU1,SKU2,SKU3"></textarea>
+    <div class="sr" style="margin-top:7px">
+      <button class="btn btn-p btn-w" id="prev-btn">Fetch SKU Data</button>
+    </div>
+    <div class="pb-wrap"><div class="pb-fill" id="pb2"></div></div>
+    <div class="note" style="margin-top:4px">Looks up each SKU via /catalog/?q=SKU</div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="ss">
+    <span class="sl">Filters</span>
+    <div class="fg">
+      <select id="f-disc"><option value="0">Discount…</option><option value="1-9">Under 10%</option><option value="10-100">10%+</option><option value="20-100">20%+</option><option value="30-100">30%+</option><option value="40-100">40%+</option><option value="50-100">50%+</option></select>
+      <select id="f-rat"><option value="0">Rating…</option><option value="0-0">No Rating</option><option value="1-5">1+ Stars</option><option value="2-5">2+ Stars</option><option value="3-5">3+ Stars</option><option value="4-5">4+ Stars</option></select>
+      <select id="f-oos"><option value="0">All Items</option><option value="valid">In-Stock Only</option><option value="oos">OOS Only</option></select>
+      <select id="f-cat"><option value="0">Category…</option></select>
+      <select id="f-br"><option value="0">Brand…</option></select>
+      <select id="f-sel"><option value="0">Seller…</option></select>
+    </div>
+    <div class="pills">
+      <div class="pill" data-tag="express">Express</div>
+      <div class="pill" data-tag="global">Global</div>
+      <div class="pill" data-tag="official">Official Store</div>
+      <div class="pill" data-tag="disc">Has Discount</div>
+      <div class="pill" data-tag="rated">Has Rating</div>
+    </div>
+    <hr class="d" />
+    <div class="sr">
+      <span style="font-size:.73em;color:var(--muted);white-space:nowrap">Sort:</span>
+      <select id="f-sf" style="flex:1"><option value="price">Price</option><option value="disc">Discount</option><option value="rating">Rating</option><option value="name">Name</option></select>
+      <select id="f-sd" style="flex:0.55"><option value="asc">Asc</option><option value="dsc">Desc</option></select>
+    </div>
+    <div class="sr">
+      <button class="btn btn-g btn-sm" id="btn-shuf">Shuffle</button>
+      <button class="btn btn-g btn-sm" id="btn-rst">Restore</button>
+    </div>
+  </div>
+
+  <!-- SKU OUTPUT -->
+  <div class="ss" style="flex:1">
+    <span class="sl">SKU Output</span>
+    <div class="outs">
+      <div class="owrap">
+        <div style="font-size:.65em;color:var(--muted);margin-bottom:3px">Comma</div>
+        <textarea id="out-c" readonly style="min-height:58px"></textarea>
+        <button class="btn btn-g btn-sm ocopy" data-t="out-c">Copy</button>
+      </div>
+      <div class="owrap">
+        <div style="font-size:.65em;color:var(--muted);margin-bottom:3px">Newline</div>
+        <textarea id="out-n" readonly style="min-height:58px"></textarea>
+        <button class="btn btn-g btn-sm ocopy" data-t="out-n">Copy</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<div class="main">
+  <div class="toolbar">
+    <div class="kww">
+      <input type="text" id="kw" placeholder="Filter by keyword…" />
+      <button class="btn btn-p btn-sm kwb" id="btn-kw">Go</button>
+    </div>
+    <span style="font-size:.75em;color:var(--muted)" id="pct">0 products</span>
+    <div style="flex:1"></div>
+    <button class="btn btn-s btn-sm" id="btn-csv" disabled>Export CSV</button>
+  </div>
+  <div class="pw" id="pw">
+    <div class="empty" id="es">
+      <div class="ico">📦</div>
+      <p>Paste a Jumia listing URL and click <strong>Find</strong>, or switch to <strong>Preview</strong> to look up individual SKUs.</p>
+    </div>
+    <div class="pg" id="pg" style="display:none"></div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   PROXY ROTATION
+   We try multiple free CORS proxies in sequence.
+═══════════════════════════════════════════ */
+const PROXIES = [
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  u => `https://thingproxy.freeboard.io/fetch/${u}`,
+];
+
+async function pfetch(url, idx) {
+  idx = idx || 0;
+  if (idx >= PROXIES.length) throw new Error('No proxy worked for ' + url);
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 22000);
+    const res = await fetch(PROXIES[idx](url), {signal: ctrl.signal});
+    clearTimeout(tid);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const txt = await res.text();
+    if (!txt || txt.length < 200) throw new Error('Empty');
+    return txt;
+  } catch(e) {
+    return pfetch(url, idx + 1);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+const S = {
+  mode: 'find',
+  domain: 'https://www.jumia.com.ng',
+  data: [], orig: [],
+  tags: new Set(),
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function parsePrice(s) { return parseFloat((s||'').replace(/[^0-9.]/g,''))||0; }
+function isUrl(s) { try{var u=new URL(s);return u.protocol.startsWith('http');}catch(e){return false;} }
+
+/* ═══════════════════════════════════════════
+   UI
+═══════════════════════════════════════════ */
+function toast(msg, type) {
+  var el = $('#toast');
+  el.textContent = msg; el.className = 'toast on '+(type||'');
+  clearTimeout(el._t); el._t = setTimeout(function(){ el.className='toast'; }, 2800);
+}
+function loader(on, txt) {
+  $('#ldr').classList.toggle('on', on);
+  $('#ldr-txt').textContent = txt || 'Working…';
+}
+function prog(pct, id) {
+  var el = $('#'+(id||'pb'));
+  if (el) el.style.width = Math.min(100,pct)+'%';
+}
+function statSet(a, b, t) {
+  $('#st-a').textContent = a;
+  $('#st-b').textContent = b;
+  $('#st-t').textContent = t;
+  $('#pct').textContent = t + ' products';
+}
+function syncDomain() {
+  var v = $('#country').value;
+  S.domain = v === '.co.za' ? 'https://www.zando.co.za' : 'https://www.jumia' + v;
+  $('#country2').value = v;
+}
+function syncDomain2() {
+  var v = $('#country2').value;
+  S.domain = v === '.co.za' ? 'https://www.zando.co.za' : 'https://www.jumia' + v;
+  $('#country').value = v;
+}
+
+/* ═══════════════════════════════════════════
+   PARSE LISTING HTML  ← THE KEY FIX
+
+   What the proxy actually returns for Jumia listing pages:
+   • Products appear as plain <a href="/product-name-12345.html"> links
+   • Inside: an <img> whose alt="Product Name" and src is an SVG placeholder
+   • Text nodes contain: Name, price (₦ X,XXX), old price, discount "%"
+   • "Out of Stock" text appears for OOS items
+   • NO article.prd, NO .prc, NO .core classes in proxy HTML
+
+   Strategy: find all <a> tags linking to .html product pages,
+   then extract data from their text content and img alt.
+═══════════════════════════════════════════ */
+function parseListingHTML(rawHtml) {
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(rawHtml, 'text/html');
+  var products = [];
+  var seen = {};
+
+  // Select ALL anchor tags with href ending in .html
+  var all = doc.querySelectorAll('a[href]');
+  all.forEach(function(a) {
+    var href = a.getAttribute('href') || '';
+
+    // Must link to a product page: ends with -DIGITS.html
+    if (!/\-\d+\.html$/.test(href)) return;
+    // Skip navigation/banner links that don't have price-like content
+    if (seen[href]) return;
+
+    var txt = a.textContent || '';
+
+    // Must contain a currency symbol (₦ £ KSh etc) or price-like number
+    // This filters out menu/nav links
+    var hasCurrency = /[₦£€KSh\$]/.test(txt) || /\b\d{2,3},\d{3}\b/.test(txt);
+    if (!hasCurrency) {
+      // Also accept if there's a % discount shown
+      if (!/\d+%/.test(txt)) return;
+    }
+
+    seen[href] = true;
+
+    // Item ID from URL
+    var idM = href.match(/-(\d+)\.html$/);
+    var itemId = idM ? idM[1] : '';
+
+    // Product name: best from img alt attribute
+    var img = a.querySelector('img');
+    var imgSrc = img ? (img.getAttribute('data-src') || img.getAttribute('src') || '') : '';
+    var name = img ? (img.getAttribute('alt') || '').trim() : '';
+
+    // If name is empty, extract first meaningful text block
+    if (!name) {
+      // Get text nodes / headings
+      var h = a.querySelector('h3, h2, .name, [class*="name"]');
+      name = h ? h.textContent.trim() : txt.split('\n').map(s=>s.trim()).filter(s=>s.length>5&&!/^[\d,%₦£€KSh\$\s]+$/.test(s))[0] || '';
+    }
+
+    // Clean name
+    name = name.replace(/\s+/g,' ').trim();
+
+    // Price extraction from text
+    // Look for currency amounts: ₦ 144,496 or ₦144,496 or KSh 5,000
+    var prices = txt.match(/(?:₦|KSh|GH₵|MAD|TND|XOF|UGX|DZD|ZAR|£|€|\$)\s*[\d,]+(?:\.\d+)?/g) || [];
+    var price = prices[0] ? prices[0].replace(/\s+/g,'') : '';
+    var oldPrice = prices[1] ? prices[1].replace(/\s+/g,'') : '';
+
+    // Discount: look for pattern like "13%" or "- 13%"
+    var discM = txt.match(/(\d+)\s*%/);
+    var discount = discM ? discM[1] : '0';
+
+    // Rating: "X out of 5" or "X.X out of 5"
+    var ratM = txt.match(/([\d.]+)\s+out\s+of\s+5/i);
+    var rating = ratM ? parseFloat(ratM[1]) : 0;
+
+    // Review count: "(NNN)" pattern
+    var revM = txt.match(/\((\d+)\)/);
+    var reviews = revM ? parseInt(revM[1]) : 0;
+
+    // OOS: "Out of Stock" or "Sold out" in text
+    var isOOS = /out\s+of\s+stock|sold\s+out/i.test(txt);
+
+    // Badges from text/HTML
+    var aHtml = a.innerHTML || '';
+    var isExpress = /jumia\s+express|express/i.test(aHtml) && /express/i.test(aHtml);
+    var isGlobal  = /shipped\s+from\s+abroad|global/i.test(txt);
+    var isOfficial= /official\s+store/i.test(txt);
+
+    // Brand: not reliably in listing HTML — will be resolved later
+    var brand = '';
+
+    if (!name) return; // truly skip if we can't get a name
+
+    products.push({
+      itemId: itemId,
+      sku: itemId,           // placeholder; real SKU resolved from product page
+      name: name,
+      displayName: name,
+      brand: brand,
+      image: imgSrc,
+      url: href,
+      fullUrl: href.startsWith('http') ? href : S.domain + href,
+      prices: { price: price, oldPrice: oldPrice, discount: discount, rawPrice: price },
+      rating: { average: rating, totalRatings: reviews },
+      isShopExpress: isExpress,
+      isShopGlobal: isGlobal,
+      isOfficial: isOfficial,
+      isBuyable: !isOOS,
+      _oos: isOOS,
+      sellerName: 'N/A',
+      categories: [],
+      _needsSku: true,
+    });
+  });
+
+  return products;
+}
+
+/* ═══════════════════════════════════════════
+   PARSE CATALOG PAGE  (for Preview mode & SKU resolve)
+   /catalog/?q=SKU → window.__STORE__ JSON
+═══════════════════════════════════════════ */
+function parseCatalog(html) {
+  // Method 1: window.__STORE__ = {...}
+  var m1 = html.match(/window\.__STORE__\s*=\s*(\{[\s\S]*?\});\s*<\/script>/);
+  if (m1) {
+    try { var s=JSON.parse(m1[1]); if(s.products&&s.products.length) return s.products; } catch(e) {}
+  }
+  // Method 2: inline script chunk with "products":[{
+  var scriptRe = /<script[^>]*>([\s\S]*?)<\/script>/gi, sm;
+  while ((sm=scriptRe.exec(html))!==null) {
+    var chunk = sm[1];
+    if (chunk.indexOf('"products":[{') < 0) continue;
+    var raw = '{' + chunk.substring(chunk.indexOf('"products":'));
+    try { var ei=raw.lastIndexOf('}]'); if(ei>-1){var p=JSON.parse(raw.substring(0,ei+2)+'}');if(p.products)return p.products;} } catch(e){}
+    try { var hi=raw.indexOf(',"head"'); var p2=JSON.parse(raw.substring(0,hi>-1?hi-1:raw.length)+'}');if(p2.products)return p2.products; } catch(e){}
+  }
+  return [];
+}
+
+/* ═══════════════════════════════════════════
+   RESOLVE REAL SKU + EXTRA DATA
+   Visit each product detail page to get the
+   alphanumeric SKU, brand, seller, categories
+═══════════════════════════════════════════ */
+async function resolveSKU(prod) {
+  if (!prod._needsSku && prod.sku !== prod.itemId) return prod;
+  var url = prod.fullUrl || (prod.url.startsWith('http') ? prod.url : S.domain + prod.url);
+  try {
+    var html = await pfetch(url);
+    // Try catalog parser first (product pages embed __STORE__)
+    var prods = parseCatalog(html);
+    if (prods.length) {
+      var p = prods[0];
+      prod.sku = p.sku || prod.itemId;
+      if (p.brand) prod.brand = p.brand;
+      if (p.categories && p.categories.length) prod.categories = p.categories;
+      if (p.sellerName) prod.sellerName = p.sellerName;
+      if (p.isShopExpress) prod.isShopExpress = true;
+      if (p.isShopGlobal)  prod.isShopGlobal  = true;
+      if (p.prices && p.prices.price && !prod.prices.price) {
+        prod.prices = p.prices;
+      }
+    } else {
+      // Regex fallbacks
+      var skuM = html.match(/"sku"\s*:\s*"([A-Z0-9]{10,30})"/);
+      if (skuM) prod.sku = skuM[1];
+      var brM  = html.match(/"brand"\s*:\s*"([^"]+)"/);
+      if (brM)  prod.brand = brM[1];
+      var selM = html.match(/"sellerName"\s*:\s*"([^"]+)"/);
+      if (selM) prod.sellerName = selM[1];
+      var catM = html.match(/"categories"\s*:\s*(\[[^\]]+\])/);
+      if (catM) { try{prod.categories=JSON.parse(catM[1]);}catch(e){} }
+    }
+  } catch(e) { /* keep itemId as SKU */ }
+  prod._needsSku = false;
+  return prod;
+}
+
+/* ═══════════════════════════════════════════
+   FIND MODE
+═══════════════════════════════════════════ */
+async function beginFind() {
+  var urlVal = $('#url-in').value.trim();
+  var pages  = parseInt($('#pg-no').value) || 1;
+  if (!isUrl(urlVal)) return toast('Enter a valid URL', 'er');
+
+  resetState();
+  // Normalise URL: remove trailing #fragment
+  var baseUrl = urlVal.split('#')[0].replace(/\/$/, '') + '/';
+  S.url = baseUrl;
+  prog(0); loader(true, 'Fetching page 1…');
+  statSet(0, pages, 0);
+
+  for (var pg = 1; pg <= pages; pg++) {
+    loader(true, 'Fetching page ' + pg + ' of ' + pages + '…');
+    var sep = baseUrl.includes('?') ? '&' : '?';
+    var pageUrl = pg === 1 ? baseUrl : baseUrl + sep + 'page=' + pg;
+    try {
+      var html = await pfetch(pageUrl);
+      var parsed = parseListingHTML(html);
+      parsed.forEach(function(p){ S.data.push(p); S.orig.push(p); });
+      prog((pg/pages)*50);
+      statSet(pg, pages, S.data.length);
+    } catch(e) {
+      toast('Proxy error on page ' + pg, 'er');
+    }
+  }
+
+  if (!S.data.length) {
+    loader(false);
+    toast('No products found. The proxy may have failed — try again.', 'er');
+    return;
+  }
+
+  // Resolve real SKUs in batches
+  var need = S.data.filter(function(p){ return p._needsSku; });
+  if (need.length) {
+    var bs = 4;
+    for (var i = 0; i < need.length; i += bs) {
+      var batch = need.slice(i, i+bs);
+      await Promise.all(batch.map(resolveSKU));
+      var done = Math.min(i+bs, need.length);
+      prog(50 + (done/need.length)*50);
+      loader(true, 'Resolving SKUs ' + done + '/' + need.length + '…');
+    }
+  }
+
+  prog(100); loader(false);
+  finalize();
+  toast('Found ' + S.data.length + ' products!', 'ok');
+}
+
+/* ═══════════════════════════════════════════
+   PREVIEW MODE
+═══════════════════════════════════════════ */
+async function beginPreview() {
+  var raw = $('#sku-in').value.trim();
+  if (!raw) return toast('Paste SKUs first', 'er');
+  var skus = raw.split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
+  if (!skus.length) return toast('No SKUs found', 'er');
+
+  resetState();
+  loader(true, 'Fetching 0/'+skus.length+'…');
+  statSet(0, skus.length, skus.length);
+  prog(0,'pb2');
+
+  var done=0, live=0, oos=0;
+  var bs=4;
+  for (var i=0; i<skus.length; i+=bs) {
+    var batch = skus.slice(i,i+bs);
+    var res = await Promise.all(batch.map(async function(sku){
+      try {
+        var html = await pfetch(S.domain+'/catalog/?q='+sku);
+        var prods = parseCatalog(html);
+        done++;
+        if (prods && prods.length) {
+          var p = prods[0];
+          p._oos = p.isBuyable === false;
+          p.sellerName = p.sellerName || 'N/A';
+          p.fullUrl = p.url ? S.domain+p.url : '';
+          if (p._oos) oos++; else live++;
+          loader(true,'Fetched '+done+'/'+skus.length+'… ('+live+' live, '+oos+' OOS)');
+          statSet(live, oos, done);
+          prog((done/skus.length)*100,'pb2');
+          return p;
+        } else {
+          oos++;
+          loader(true,'Fetched '+done+'/'+skus.length+'… ('+live+' live, '+oos+' OOS)');
+          return makeOOS(sku);
+        }
+      } catch(e) { done++; oos++; return makeOOS(sku); }
+    }));
+    res.filter(Boolean).forEach(function(p){ S.data.push(p); S.orig.push(p); });
+  }
+
+  prog(100,'pb2'); loader(false);
+  finalize();
+  toast('Done! '+live+' live, '+oos+' OOS.', 'ok');
+  $('#st-al').textContent='Live'; $('#st-bl').textContent='OOS';
+  statSet(live, oos, S.data.length);
+}
+
+function makeOOS(sku) {
+  return {sku:sku,itemId:sku,name:'Out of Stock',displayName:'Out of Stock',
+    brand:'',image:'',url:'',fullUrl:'',sellerName:'N/A',categories:[],
+    isShopExpress:false,isShopGlobal:false,isOfficial:false,
+    prices:{price:'N/A',oldPrice:'',discount:'0',rawPrice:'0'},
+    rating:{average:0,totalRatings:0},isBuyable:false,_oos:true,_needsSku:false};
+}
+
+/* ═══════════════════════════════════════════
+   FINALIZE
+═══════════════════════════════════════════ */
+function finalize() { buildFilters(); applyFilters(); }
+
+function buildFilters() {
+  function uniq(a){ return a.filter(function(v,i,ar){ return v&&ar.indexOf(v)===i; }); }
+  var cats    = uniq(S.orig.map(function(p){ return p.categories&&p.categories.length?p.categories[0]:''; }));
+  var brands  = uniq(S.orig.map(function(p){ return p.brand||''; }).filter(function(b){ return b&&b!=='N/A'; }));
+  var sellers = uniq(S.orig.map(function(p){ return p.sellerName||''; }).filter(function(s){ return s&&s!=='N/A'; }));
+  mkSel('#f-cat', cats, 'Category…');
+  mkSel('#f-br',  brands, 'Brand…');
+  mkSel('#f-sel', sellers, 'Seller…');
+}
+function mkSel(sel, vals, ph) {
+  $(sel).innerHTML = '<option value="0">'+ph+'</option>' +
+    vals.map(function(v){ return '<option value="'+esc(v)+'">'+esc(v)+'</option>'; }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   RENDER PRODUCTS
+═══════════════════════════════════════════ */
+function render(prods) {
+  var grid=$('#pg'), es=$('#es');
+  $('#pct').textContent = prods.length+' products';
+  skuOut(prods);
+  $('#btn-csv').disabled = prods.length===0;
+
+  if (!prods.length) {
+    grid.style.display='none'; es.style.display='flex';
+    es.querySelector('p').textContent='No products match the current filters.';
+    return;
+  }
+  es.style.display='none'; grid.style.display='grid';
+  grid.innerHTML = prods.map(card).join('');
+
+  // Lazy load images
+  grid.querySelectorAll('img[data-src]').forEach(function(img){
+    var io=new IntersectionObserver(function(ens){
+      ens.forEach(function(e){
+        if(!e.isIntersecting) return;
+        img.src=img.dataset.src;
+        img.onload=function(){ img.classList.add('ok'); };
+        img.onerror=function(){ img.classList.add('ok'); };
+        io.disconnect();
+      });
+    });
+    io.observe(img);
+  });
+
+  // Delete
+  grid.querySelectorAll('.dbtn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      var sk=btn.getAttribute('data-sk');
+      S.data=S.data.filter(function(p){ return (p.sku||p.itemId)!==sk; });
+      S.orig=S.orig.filter(function(p){ return (p.sku||p.itemId)!==sk; });
+      btn.closest('.pc').remove();
+      skuOut(S.data);
+      $('#pct').textContent=S.data.length+' products';
+      $('#btn-csv').disabled=S.data.length===0;
+    });
+  });
+}
+
+function card(p) {
+  var disc=parseInt(p.prices.discount)||0;
+  var db=disc>0?'<div class="bdg bdo">-'+disc+'%</div>':'';
+  var xb=p.isShopExpress?'<div class="bdg bdx">Express</div>':'';
+  var ob=p._oos?'<div class="bdg bdr">OOS</div>':'';
+  var ofb=p.isOfficial?'<div class="bdg bdof">Official</div>':'';
+  var rat=p.rating&&p.rating.average?parseFloat(p.rating.average):0;
+  var rh=rat>0?'<div class="pr">'+rat.toFixed(1)+' ('+((p.rating&&p.rating.totalRatings)||0)+')</div>':'';
+  var sh=(p.sellerName&&p.sellerName!=='N/A')?'<div class="ps">'+esc(p.sellerName)+'</div>':'';
+  var bh=(p.brand&&p.brand!=='N/A')?'<div class="pb">'+esc(p.brand)+'</div>':'';
+  var imgSrc=p.image||'';
+  var link=p.fullUrl||(p.url?(p.url.startsWith('http')?p.url:S.domain+p.url):'#');
+  var sk=p.sku||p.itemId||'';
+  var ih=imgSrc?'<img data-src="'+esc(imgSrc)+'" alt="" />'
+    :'<div class="noi">📷</div>';
+  return '<div class="pc" data-sk="'+esc(sk)+'">' +
+    '<a href="'+esc(link)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">' +
+      '<div class="iw">'+ih+db+xb+ob+ofb+'</div>' +
+      '<div class="pi">' +
+        '<div class="pn">'+esc(p.displayName||p.name||'')+'</div>' +
+        bh+
+        '<div class="pp">'+esc(p.prices.price)+'<span class="po">'+esc(p.prices.oldPrice||'')+'</span></div>' +
+        rh+sh+
+        '<div class="psk">'+esc(sk)+'</div>' +
+      '</div>' +
+    '</a>' +
+    '<button class="dbtn" data-sk="'+esc(sk)+'" title="Remove">x</button>' +
+  '</div>';
+}
+
+function skuOut(prods) {
+  var skus=prods.map(function(p){ return p.sku||p.itemId||''; }).filter(Boolean);
+  $('#out-c').value=skus.join(',');
+  $('#out-n').value=skus.join('\n');
+  $('#st-t').textContent=prods.length;
+}
+
+/* ═══════════════════════════════════════════
+   FILTERS
+═══════════════════════════════════════════ */
+function applyFilters() {
+  var res=S.orig.slice();
+
+  var dv=$('#f-disc').value;
+  if(dv!=='0'){var dp=dv.split('-').map(Number);res=res.filter(function(p){var d=parseInt(p.prices.discount)||0;return d>=dp[0]&&d<=dp[1];});}
+
+  var rv=$('#f-rat').value;
+  if(rv!=='0'){var rp=rv.split('-').map(Number);res=res.filter(function(p){var r=parseFloat((p.rating&&p.rating.average)||0);if(rp[0]===0&&rp[1]===0)return r===0;return r>=rp[0]&&r<=rp[1];});}
+
+  var ov=$('#f-oos').value;
+  if(ov==='valid')res=res.filter(function(p){return !p._oos;});
+  if(ov==='oos')  res=res.filter(function(p){return p._oos;});
+
+  var cv=$('#f-cat').value;
+  if(cv!=='0')res=res.filter(function(p){return p.categories&&p.categories[0]===cv;});
+
+  var bv=$('#f-br').value;
+  if(bv!=='0')res=res.filter(function(p){return p.brand===bv;});
+
+  var sv=$('#f-sel').value;
+  if(sv!=='0')res=res.filter(function(p){return p.sellerName===sv;});
+
+  if(S.tags.has('express'))res=res.filter(function(p){return p.isShopExpress;});
+  if(S.tags.has('global')) res=res.filter(function(p){return p.isShopGlobal;});
+  if(S.tags.has('official'))res=res.filter(function(p){return p.isOfficial;});
+  if(S.tags.has('disc'))   res=res.filter(function(p){return (parseInt(p.prices.discount)||0)>0;});
+  if(S.tags.has('rated'))  res=res.filter(function(p){return parseFloat((p.rating&&p.rating.average)||0)>0;});
+
+  var sf=$('#f-sf').value, sd=$('#f-sd').value;
+  res.sort(function(a,b){
+    var va,vb;
+    if(sf==='price'){va=parsePrice(a.prices.price);vb=parsePrice(b.prices.price);}
+    else if(sf==='disc'){va=parseInt(a.prices.discount)||0;vb=parseInt(b.prices.discount)||0;}
+    else if(sf==='rating'){va=parseFloat((a.rating&&a.rating.average)||0);vb=parseFloat((b.rating&&b.rating.average)||0);}
+    else if(sf==='name'){return sd==='asc'?(a.name||'').localeCompare(b.name||''):(b.name||'').localeCompare(a.name||'');}
+    else{va=0;vb=0;}
+    return sd==='asc'?va-vb:vb-va;
+  });
+
+  S.data=res;
+  render(S.data);
+}
+
+function kwFilter() {
+  var kw=($('#kw').value||'').trim().toLowerCase();
+  if(!kw) return applyFilters();
+  S.data=S.orig.filter(function(p){
+    return (p.displayName||p.name||'').toLowerCase().includes(kw)||
+      (p.brand||'').toLowerCase().includes(kw)||
+      (p.categories||[]).join(' ').toLowerCase().includes(kw)||
+      (p.sellerName||'').toLowerCase().includes(kw);
+  });
+  render(S.data);
+}
+
+/* ═══════════════════════════════════════════
+   CSV EXPORT
+═══════════════════════════════════════════ */
+function exportCSV() {
+  var h=['SKU','Name','Brand','Category','Old Price','New Price','Discount','Express','Global','Official','Rating','Reviews','Seller','Image','URL'];
+  var rows=S.data.map(function(p){
+    return [
+      p.sku||p.itemId||'',p.displayName||p.name||'',p.brand||'',
+      (p.categories&&p.categories[0])||'',
+      p.prices.oldPrice||'',p.prices.price||'',
+      (parseInt(p.prices.discount)||0)+'%',
+      p.isShopExpress?'Yes':'No',p.isShopGlobal?'Yes':'No',p.isOfficial?'Yes':'No',
+      (p.rating&&p.rating.average)||'',(p.rating&&p.rating.totalRatings)||'',
+      p.sellerName||'',p.image||'',
+      p.fullUrl||(p.url?(p.url.startsWith('http')?p.url:S.domain+p.url):'')||''
+    ].map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(',');
+  });
+  var csv=[h.join(',')].concat(rows).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var u=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=u; a.download='jumia-skus-'+Date.now()+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
+  toast('CSV exported!','ok');
+}
+
+/* ═══════════════════════════════════════════
+   SHUFFLE / RESTORE / RESET
+═══════════════════════════════════════════ */
+function shuffle(){ S.data.sort(function(){return Math.random()-.5;}); render(S.data); }
+function restore(){
+  S.data=S.orig.slice(); resetFUI();
+  S.tags.clear(); $$('.pill').forEach(function(p){p.classList.remove('on');});
+  applyFilters();
+}
+function resetFUI(){
+  ['#f-disc','#f-rat','#f-oos','#f-cat','#f-br','#f-sel'].forEach(function(s){var e=$(s);if(e)e.value='0';});
+  $('#kw').value='';
+}
+function resetState(){
+  S.data=[]; S.orig=[];
+  $('#pg').innerHTML=''; $('#pg').style.display='none';
+  var es=$('#es'); es.style.display='flex';
+  es.querySelector('p').textContent='Fetching data…';
+  resetFUI(); S.tags.clear();
+  $$('.pill').forEach(function(p){p.classList.remove('on');});
+  skuOut([]); $('#btn-csv').disabled=true;
+  prog(0); prog(0,'pb2');
+}
+
+/* ═══════════════════════════════════════════
+   MODE SWITCH
+═══════════════════════════════════════════ */
+function setMode(m){
+  S.mode=m;
+  $('#btn-find').classList.toggle('active',m==='find');
+  $('#btn-preview').classList.toggle('active',m==='preview');
+  $('#find-panel').style.display    =m==='find'?'':'none';
+  $('#preview-panel').style.display =m==='preview'?'':'none';
+  $('#st-al').textContent=m==='find'?'Page':'Live';
+  $('#st-bl').textContent=m==='find'?'of':'OOS';
+  resetState();
+  $('#es').querySelector('p').textContent=m==='find'
+    ?'Paste a Jumia listing URL and click Find.'
+    :'Paste SKUs and click Fetch SKU Data.';
+}
+
+/* ═══════════════════════════════════════════
+   BINDINGS
+═══════════════════════════════════════════ */
+$('#btn-find').addEventListener('click',function(){setMode('find');});
+$('#btn-preview').addEventListener('click',function(){setMode('preview');});
+$('#country').addEventListener('change',syncDomain);
+$('#country2').addEventListener('change',syncDomain2);
+$('#find-btn').addEventListener('click',beginFind);
+$('#prev-btn').addEventListener('click',beginPreview);
+$('#btn-shuf').addEventListener('click',shuffle);
+$('#btn-rst').addEventListener('click',restore);
+$('#btn-kw').addEventListener('click',kwFilter);
+$('#kw').addEventListener('keyup',function(e){if(e.key==='Enter')kwFilter();});
+$('#btn-csv').addEventListener('click',exportCSV);
+$('#url-in').addEventListener('keyup',function(e){if(e.key==='Enter')beginFind();});
+['#f-disc','#f-rat','#f-oos','#f-cat','#f-br','#f-sel','#f-sf','#f-sd'].forEach(function(s){
+  $(s).addEventListener('change',applyFilters);
+});
+$$('.pill').forEach(function(pill){
+  pill.addEventListener('click',function(){
+    var t=pill.getAttribute('data-tag');
+    if(S.tags.has(t)){S.tags.delete(t);pill.classList.remove('on');}
+    else{S.tags.add(t);pill.classList.add('on');}
+    applyFilters();
+  });
+});
+$$('.ocopy').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var el=$('#'+btn.getAttribute('data-t'));
+    el.select(); document.execCommand('copy'); toast('Copied!','ok');
+  });
+});
+</script>
+</body>
+</html>
