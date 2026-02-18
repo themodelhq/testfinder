@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jumia SKU Finder Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;transition:background .2s,color .2s,box-shadow .2s,opacity .2s,transform .15s}
+:root{
+  --bg:#0f0f13;
+  --surface:#18181f;
+  --surface2:#22222d;
+  --border:#2e2e3a;
+  --orange:#f68b1e;
+  --orange-dim:#c06a10;
+  --text:#f0eee8;
+  --text-muted:#7e7e90;
+  --green:#2ecc71;
+  --red:#e74c3c;
+  --blue:#5b9cf6;
+  --radius:10px;
+  --mono:'Space Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+/* ── HEADER ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+header .logo{font-family:var(--mono);font-size:1.1em;font-weight:700;color:var(--orange);letter-spacing:-0.5px;white-space:nowrap}
+header .logo span{color:var(--text-muted)}
+.mode-toggle{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:6px;padding:4px}
+.mode-btn{padding:5px 14px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:.8em;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.5px}
+.mode-btn.active{background:var(--orange);color:#fff}
+.spacer{flex:1}
+.status-bar{display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:.75em}
+.stat{display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.stat .val{color:var(--orange);font-weight:700;font-size:1.1em}
+.stat .lbl{color:var(--text-muted);font-size:.8em;text-transform:uppercase}
+.stat-sep{width:1px;height:30px;background:var(--border)}
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 57px);overflow:hidden}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.main{display:flex;flex-direction:column;overflow:hidden}
+/* ── SIDEBAR ── */
+.s-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+.s-label{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:8px}
+.s-row{display:flex;gap:8px;margin-bottom:8px}
+select,input[type=text],input[type=number],textarea{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--text);font-family:var(--sans);font-size:.85em;padding:7px 10px;
+  outline:none;width:100%;-webkit-appearance:none;
+}
+select:focus,input:focus,textarea:focus{border-color:var(--orange)}
+select option{background:var(--surface2)}
+textarea{resize:vertical;min-height:80px;font-family:var(--mono);font-size:.75em;line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 16px;border-radius:var(--radius);border:none;font-family:var(--sans);font-size:.82em;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-primary:hover{background:var(--orange-dim)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--orange);color:var(--orange)}
+.btn-sm{padding:5px 10px;font-size:.76em}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text-muted)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn-full{width:100%}
+/* ── FILTERS ── */
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.filter-grid.three{grid-template-columns:1fr 1fr 1fr}
+.filter-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.filter-tag{padding:3px 8px;border-radius:20px;font-size:.72em;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--text-muted);background:transparent}
+.filter-tag.active{background:var(--orange);border-color:var(--orange);color:#fff}
+.sort-row{display:flex;gap:6px;align-items:center;margin-top:6px}
+.sort-label{font-size:.75em;color:var(--text-muted);white-space:nowrap}
+/* ── SKU TEXTAREA SECTION ── */
+.sku-outputs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sku-wrap{position:relative}
+.sku-copy{position:absolute;top:4px;right:4px;font-size:.65em;padding:2px 7px;z-index:2}
+/* ── PRODUCTS AREA ── */
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.toolbar .keyword-wrap{flex:1;min-width:160px;position:relative}
+.toolbar .keyword-wrap input{padding-right:70px}
+.keyword-filter-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:.72em;padding:4px 10px}
+.products-wrap{flex:1;overflow-y:auto;padding:12px}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.product-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;cursor:pointer;transition:border-color .2s,transform .15s}
+.product-card:hover{border-color:var(--orange);transform:translateY(-2px)}
+.product-card .img-wrap{position:relative;background:#111;aspect-ratio:1}
+.product-card img{width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .3s}
+.product-card img.loaded{opacity:1}
+.product-card .badge{position:absolute;top:6px;left:6px;font-size:.65em;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--orange);color:#fff}
+.product-card .badge.express{background:var(--blue);top:auto;bottom:6px;left:6px}
+.product-card .badge.oos-badge{background:var(--red)}
+.product-card .del-btn{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.7);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.product-card:hover .del-btn{opacity:1}
+.product-card .info{padding:8px}
+.product-card .p-name{font-size:.76em;font-weight:500;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px;color:var(--text)}
+.product-card .p-brand{font-size:.68em;color:var(--text-muted);margin-bottom:4px;font-family:var(--mono)}
+.product-card .p-price{font-weight:700;font-size:.88em;color:var(--orange)}
+.product-card .p-old{font-size:.7em;color:var(--text-muted);text-decoration:line-through}
+.product-card .p-rating{font-size:.7em;color:#f9c74f;margin-top:3px}
+.product-card .p-sku{font-family:var(--mono);font-size:.63em;color:var(--text-muted);margin-top:5px;padding-top:5px;border-top:1px solid var(--border);word-break:break-all}
+/* ── EXPORT SECTION ── */
+.export-bar{background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.export-info{font-size:.78em;color:var(--text-muted)}
+/* ── PRELOADER ── */
+.loader{display:none;align-items:center;gap:6px;font-size:.75em;color:var(--text-muted)}
+.loader.active{display:flex}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.2s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+/* ── EMPTY STATE ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);gap:12px;text-align:center;padding:40px}
+.empty .icon{font-size:3em;opacity:.3}
+.empty p{font-size:.9em;line-height:1.6;max-width:300px}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 18px;font-size:.82em;color:var(--text);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+/* ── DIVIDER ── */
+hr.div{border:none;border-top:1px solid var(--border);margin:8px 0}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">SKU<span>finder</span> <span style="color:var(--orange);font-size:.65em">PRO</span></div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-find">Find</button>
+    <button class="mode-btn" id="btn-preview">Preview</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="loader" id="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span id="loader-text">Working…</span></div>
+  <div class="status-bar">
+    <div class="stat"><span class="val" id="st-page">0</span><span class="lbl" id="st-page-lbl">Page</span></div>
+    <div class="stat-sep"></div>
+    <div class="stat"><span class="val" id="st-max">0</span><span class="lbl" id="st-max-lbl">Max Page</span></div>
+    <div class="stat-sep"></div>
+    <div class="stat"><span class="val" id="st-total">0</span><span class="lbl">Total</span></div>
+  </div>
+</header>
+
+<div class="app">
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+  <!-- COUNTRY + URL (FIND MODE) -->
+  <div class="s-section" id="find-controls">
+    <div class="s-label">Country</div>
+    <select id="country">
+      <option value=".com.ng" selected>🇳🇬 Nigeria</option>
+      <option value=".com.eg">🇪🇬 Egypt</option>
+      <option value=".sn">🇸🇳 Senegal</option>
+      <option value=".com.tn">🇹🇳 Tunisia</option>
+      <option value=".ug">🇺🇬 Uganda</option>
+      <option value=".ma">🇲🇦 Morocco</option>
+      <option value=".co.ke">🇰🇪 Kenya</option>
+      <option value=".com.gh">🇬🇭 Ghana</option>
+      <option value=".ci">🇨🇮 Ivory Coast</option>
+      <option value=".com.dz">🇩🇿 Algeria</option>
+      <option value=".co.za">🇿🇦 South Africa</option>
+    </select>
+
+    <div style="margin-top:8px" class="s-label">Page URL</div>
+    <input type="text" id="url-input" placeholder="https://www.jumia.com.ng/mlp-payday-deals" />
+    <div class="s-row" style="margin-top:8px">
+      <input type="number" id="page-no" placeholder="Pages to fetch" min="1" style="flex:1" />
+      <button class="btn btn-primary" id="find-btn">Find</button>
+    </div>
+  </div>
+
+  <!-- SKU INPUT (PREVIEW MODE) -->
+  <div class="s-section" id="preview-controls" style="display:none">
+    <div class="s-label">Country</div>
+    <select id="country-preview">
+      <option value=".com.ng" selected>🇳🇬 Nigeria</option>
+      <option value=".com.eg">🇪🇬 Egypt</option>
+      <option value=".sn">🇸🇳 Senegal</option>
+      <option value=".com.tn">🇹🇳 Tunisia</option>
+      <option value=".ug">🇺🇬 Uganda</option>
+      <option value=".ma">🇲🇦 Morocco</option>
+      <option value=".co.ke">🇰🇪 Kenya</option>
+      <option value=".com.gh">🇬🇭 Ghana</option>
+      <option value=".ci">🇨🇮 Ivory Coast</option>
+      <option value=".com.dz">🇩🇿 Algeria</option>
+      <option value=".co.za">🇿🇦 South Africa</option>
+    </select>
+    <div style="margin-top:8px" class="s-label">Paste SKUs (comma or newline)</div>
+    <textarea id="sku-input" placeholder="SKU1,SKU2,SKU3&#10;or one per line"></textarea>
+    <div class="s-row" style="margin-top:8px">
+      <button class="btn btn-primary btn-full" id="preview-btn">Fetch SKUs</button>
+    </div>
+    <div style="margin-top:6px;font-size:.72em;color:var(--text-muted)">⚡ Seller info fetched per SKU — may be slow for large lists</div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="s-section">
+    <div class="s-label">Filters</div>
+    <div class="filter-grid">
+      <select id="f-discount">
+        <option value="0">Discount…</option>
+        <option value="1-9">Under 10%</option>
+        <option value="10-100">10%+</option>
+        <option value="20-100">20%+</option>
+        <option value="30-100">30%+</option>
+        <option value="40-100">40%+</option>
+        <option value="50-100">50%+</option>
+        <option value="60-100">60%+</option>
+        <option value="70-100">70%+</option>
+        <option value="80-100">80%+</option>
+      </select>
+      <select id="f-rating">
+        <option value="0">Rating…</option>
+        <option value="0-0">No Rating</option>
+        <option value="1-5">1-5 ✯</option>
+        <option value="2-5">2-5 ✯</option>
+        <option value="3-5">3-5 ✯</option>
+        <option value="4-5">4-5 ✯</option>
+      </select>
+      <select id="f-oos">
+        <option value="0">All Products</option>
+        <option value="valid">In-Stock</option>
+        <option value="oos">OOS Only</option>
+      </select>
+      <select id="f-category">
+        <option value="0">Category…</option>
+      </select>
+      <select id="f-brand">
+        <option value="0">Brand…</option>
+      </select>
+      <select id="f-seller">
+        <option value="0">Seller…</option>
+      </select>
+    </div>
+    <!-- Express & Tag filters -->
+    <div class="filter-tags" id="tag-filters">
+      <div class="filter-tag" data-tag="express">⚡ Jumia Express</div>
+      <div class="filter-tag" data-tag="global">🌍 Global</div>
+      <div class="filter-tag" data-tag="official">🏷 Official Store</div>
+    </div>
+
+    <hr class="div" />
+    <div class="sort-row">
+      <span class="sort-label">Sort by:</span>
+      <select id="f-sort-field" style="flex:1">
+        <option value="price">Price</option>
+        <option value="discount">Discount</option>
+        <option value="rating">Rating</option>
+      </select>
+      <select id="f-sort-dir" style="flex:0.6">
+        <option value="asc">↑ Asc</option>
+        <option value="dsc">↓ Desc</option>
+      </select>
+    </div>
+    <div class="s-row" style="margin-top:8px">
+      <button class="btn btn-ghost btn-sm" id="btn-shuffle">⇄ Shuffle</button>
+      <button class="btn btn-ghost btn-sm" id="btn-restore">↩ Restore</button>
+    </div>
+  </div>
+
+  <!-- SKU OUTPUT -->
+  <div class="s-section" style="flex:1">
+    <div class="s-label">SKU Output</div>
+    <div class="sku-outputs">
+      <div class="sku-wrap">
+        <div style="font-size:.68em;color:var(--text-muted);margin-bottom:3px">Comma-separated</div>
+        <textarea id="out-comma" readonly></textarea>
+        <button class="btn btn-ghost btn-sm sku-copy" data-target="out-comma">Copy</button>
+      </div>
+      <div class="sku-wrap">
+        <div style="font-size:.68em;color:var(--text-muted);margin-bottom:3px">Newline</div>
+        <textarea id="out-newline" readonly></textarea>
+        <button class="btn btn-ghost btn-sm sku-copy" data-target="out-newline">Copy</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<!-- MAIN -->
+<div class="main">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="keyword-wrap">
+      <input type="text" id="keyword-input" placeholder="Filter by keyword…" />
+      <button class="btn btn-primary btn-sm keyword-filter-btn" id="btn-keyword">Filter</button>
+    </div>
+    <span style="font-size:.78em;color:var(--text-muted)" id="product-count">0 products</span>
+    <div style="flex:1"></div>
+    <button class="btn btn-secondary btn-sm" id="btn-export-csv" disabled>⬇ Export CSV</button>
+    <button class="btn btn-secondary btn-sm" id="btn-export-all" disabled>⬇ Full Data CSV</button>
+  </div>
+
+  <!-- Products grid -->
+  <div class="products-wrap" id="products-wrap">
+    <div class="empty" id="empty-state">
+      <div class="icon">📦</div>
+      <p>Paste a Jumia URL and click <strong>Find</strong>, or switch to <strong>Preview</strong> mode and paste SKUs to get started.</p>
+    </div>
+    <div class="products-grid" id="products-grid" style="display:none"></div>
+  </div>
+
+  <!-- Export bar -->
+  <div class="export-bar" id="export-bar" style="display:none">
+    <span class="export-info" id="export-info">Ready to export</span>
+    <div style="flex:1"></div>
+  </div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================
+   GLOBALS & STATE
+======================== */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
+let proxyIndex = 0;
+
+function proxyFetch(url, tryIdx = 0) {
+  if (tryIdx >= CORS_PROXIES.length) return Promise.reject(new Error('All proxies failed'));
+  const proxy = CORS_PROXIES[tryIdx];
+  return fetch(proxy + encodeURIComponent(url))
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .catch(() => proxyFetch(url, tryIdx + 1));
+}
+
+let state = {
+  mode: 'find', // 'find' | 'preview'
+  domain: 'https://www.jumia.com.ng',
+  catalogBase: 'https://www.jumia.com.ng/catalog/?q=',
+  data: [],       // current (filtered)
+  original: [],   // unfiltered full dataset
+  richData: [],   // with seller info
+  currentPage: 1,
+  lastPage: 1,
+  url: '',
+  activeTags: new Set(),
+  sortField: 'price',
+  sortDir: 'asc',
+};
+
+/* ========================
+   TOAST
+======================== */
+function toast(msg, type = '') {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = 'toast', 2800);
+}
+
+/* ========================
+   LOADER
+======================== */
+function setLoader(on, txt = 'Working…') {
+  $('#loader').classList.toggle('active', on);
+  $('#loader-text').textContent = txt;
+}
+
+/* ========================
+   STATUS BAR
+======================== */
+function updateStatus(page, max, total) {
+  $('#st-page').textContent = page;
+  $('#st-max').textContent = max;
+  $('#st-total').textContent = total;
+  $('#product-count').textContent = total + ' products';
+}
+
+/* ========================
+   COUNTRY
+======================== */
+function syncDomain() {
+  const val = $('#country').value;
+  state.domain = 'https://www.jumia' + val;
+  const za = val === '.co.za';
+  state.catalogBase = (za ? 'https://www.zando.co.za' : state.domain) + '/catalog/?q=';
+  $('#country-preview').value = val;
+}
+function syncDomainPreview() {
+  const val = $('#country-preview').value;
+  state.domain = 'https://www.jumia' + val;
+  const za = val === '.co.za';
+  state.catalogBase = (za ? 'https://www.zando.co.za' : state.domain) + '/catalog/?q=';
+  $('#country').value = val;
+}
+
+/* ========================
+   EXTRACT PRODUCTS FROM HTML
+======================== */
+function extractProducts(html) {
+  // Try window.__STORE__ first (newer layout)
+  let storeMatch = html.match(/window\.__STORE__\s*=\s*(\{[\s\S]*?\});\s*<\/script>/);
+  if (storeMatch) {
+    try {
+      const store = JSON.parse(storeMatch[1]);
+      if (store.products && store.products.length) return store.products;
+    } catch(e) {}
+  }
+  // Fallback: extract from inline script "products":[{...}]
+  const scripts = [];
+  const re = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) scripts.push(m[1]);
+  const idx = scripts.findIndex(s => s.includes('"products":[{'));
+  if (idx === -1) return [];
+  const chunk = scripts[idx];
+  const start = chunk.indexOf('"products":');
+  const raw = '{' + chunk.substring(start);
+  // desktop: find last }]
+  try {
+    const desktopEnd = raw.lastIndexOf('}]');
+    const parsed = JSON.parse(raw.substring(0, desktopEnd + 2) + '}');
+    return parsed.products || [];
+  } catch(e) {}
+  // mobile: strip tail
+  try {
+    const head = raw.indexOf(',"head"');
+    const parsed = JSON.parse(raw.substring(0, head > -1 ? head - 1 : raw.length) + '}');
+    return parsed.products || [];
+  } catch(e) {}
+  return [];
+}
+
+function filterBuyable(products) {
+  return products.filter(p => p.isBuyable !== false);
+}
+
+/* ========================
+   SELLER INFO
+======================== */
+async function fetchSellerName(productUrl) {
+  try {
+    const html = await proxyFetch(state.domain + productUrl);
+    const m = html.match(/Seller\s+Information<\/h2>[\s\S]*?<p[^>]*>(.*?)<\/p>/i);
+    if (m) return m[1].trim().replace(/<[^>]+>/g, '');
+    // fallback: look for seller name in structured data
+    const sm = html.match(/"sellerName"\s*:\s*"([^"]+)"/);
+    if (sm) return sm[1];
+    return 'N/A';
+  } catch(e) { return 'N/A'; }
+}
+
+/* ========================
+   FIND MODE
+======================== */
+async function beginFind() {
+  const urlVal = $('#url-input').value.trim();
+  const pages = parseInt($('#page-no').value);
+  if (!isValidUrl(urlVal)) return toast('Enter a valid URL', 'error');
+  if (isNaN(pages) || pages < 1) return toast('Enter a valid page number', 'error');
+
+  resetState();
+  state.url = urlVal.split('#catalog-listing')[0];
+  state.lastPage = pages;
+  state.currentPage = 1;
+
+  setLoader(true, 'Fetching page 1…');
+  await fetchPage();
+}
+
+async function fetchPage() {
+  const sep = state.url.includes('?') ? '&' : '?';
+  const pageUrl = state.url + sep + 'page=' + state.currentPage;
+  setLoader(true, `Fetching page ${state.currentPage}/${state.lastPage}…`);
+  try {
+    const html = await proxyFetch(pageUrl);
+    const products = filterBuyable(extractProducts(html));
+    products.forEach(p => {
+      state.data.push(p);
+      state.original.push(p);
+    });
+    updateStatus(state.currentPage, state.lastPage, state.data.length);
+    if (state.currentPage < state.lastPage) {
+      state.currentPage++;
+      await fetchPage();
+    } else {
+      setLoader(false);
+      finalizeData();
+    }
+  } catch(e) {
+    setLoader(false);
+    toast('Error fetching page. Check URL or try again.', 'error');
+    if (state.data.length) finalizeData();
+  }
+}
+
+/* ========================
+   PREVIEW MODE
+======================== */
+async function beginPreview() {
+  const raw = $('#sku-input').value.trim();
+  if (!raw) return toast('Paste some SKUs first', 'error');
+  const skus = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+  if (!skus.length) return toast('No valid SKUs found', 'error');
+
+  resetState();
+  setLoader(true, `Fetching 0/${skus.length} SKUs…`);
+  updateStatus(0, skus.length, skus.length);
+
+  let done = 0;
+  const results = await Promise.all(skus.map(async sku => {
+    try {
+      const html = await proxyFetch(state.catalogBase + sku);
+      const products = extractProducts(html);
+      done++;
+      setLoader(true, `Fetched ${done}/${skus.length} SKUs…`);
+      updateStatus(done, skus.length - done, skus.length);
+      if (products && products.length) {
+        const p = products[0];
+        // fetch seller
+        if (p.url) p.sellerName = await fetchSellerName(p.url);
+        return p;
+      } else {
+        return oosProduct(sku);
+      }
+    } catch(e) {
+      done++;
+      return oosProduct(sku);
+    }
+  }));
+
+  state.data = results.filter(Boolean);
+  state.original = [...state.data];
+  setLoader(false);
+  finalizeData();
+}
+
+function oosProduct(sku) {
+  return {
+    sku, name: 'Out of Stock', brand: 'oos', displayName: 'Out of Stock',
+    categories: ['Out of Stock'], isShopExpress: false, isShopGlobal: false,
+    prices: { price: 'N 0', oldPrice: '', discount: '0', rawPrice: '0' },
+    rating: { average: 0, totalRatings: 0 },
+    image: 'https://ng.jumia.is/cms/0-1-weekly-cps/onsite-report/floor-product-templatev2.jpg',
+    url: '/catalog/?q=' + sku, isBuyable: true, sellerName: 'N/A',
+    tags: [], _oos: true
+  };
+}
+
+/* ========================
+   FINALIZE & BUILD FILTERS
+======================== */
+function finalizeData() {
+  buildDynamicFilters();
+  renderProducts(state.data);
+  updateSKUOutput(state.data.map(p => p.sku));
+  updateExportButtons();
+}
+
+function buildDynamicFilters() {
+  const categories = [...new Set(state.original.map(p => p.categories && p.categories[0] || p.categories))].filter(Boolean);
+  const brands = [...new Set(state.original.map(p => p.brand).filter(b => b && b !== 'oos'))];
+  const sellers = [...new Set(state.original.map(p => p.sellerName).filter(s => s && s !== 'N/A'))];
+
+  buildSelect('#f-category', categories, 'Category…');
+  buildSelect('#f-brand', brands, 'Brand…');
+  buildSelect('#f-seller', sellers, 'Seller…');
+}
+
+function buildSelect(selector, values, placeholder) {
+  const el = $(selector);
+  el.innerHTML = `<option value="0">${placeholder}</option>` +
+    values.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+
+/* ========================
+   RENDER PRODUCTS
+======================== */
+function renderProducts(products) {
+  const grid = $('#products-grid');
+  const empty = $('#empty-state');
+
+  if (!products.length) {
+    grid.style.display = 'none';
+    empty.style.display = 'flex';
+    empty.querySelector('p').textContent = 'No products match the current filters.';
+    $('#product-count').textContent = '0 products';
+    updateSKUOutput([]);
+    return;
+  }
+
+  empty.style.display = 'none';
+  grid.style.display = 'grid';
+  grid.innerHTML = products.map(productCard).join('');
+  $('#product-count').textContent = products.length + ' products';
+
+  // Lazy load
+  grid.querySelectorAll('img[data-src]').forEach(img => {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          img.src = img.dataset.src;
+          img.onload = () => img.classList.add('loaded');
+          obs.disconnect();
+        }
+      });
+    });
+    obs.observe(img);
+  });
+
+  // Delete buttons
+  grid.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const sku = btn.dataset.sku;
+      state.data = state.data.filter(p => p.sku !== sku);
+      state.original = state.original.filter(p => p.sku !== sku);
+      btn.closest('.product-card').remove();
+      updateSKUOutput(state.data.map(p => p.sku));
+      $('#product-count').textContent = state.data.length + ' products';
+      updateExportButtons();
+    });
+  });
+}
+
+function productCard(p) {
+  const discount = p.prices && p.prices.discount ? parseInt(p.prices.discount) : 0;
+  const discBadge = discount > 0 ? `<div class="badge">-${discount}%</div>` : '';
+  const expressBadge = p.isShopExpress ? `<div class="badge express">⚡ Express</div>` : '';
+  const oosBadge = p._oos ? `<div class="badge oos-badge">OOS</div>` : '';
+  const rating = p.rating && p.rating.average ? `<div class="p-rating">${'✯'.repeat(Math.round(p.rating.average))} ${p.rating.average}</div>` : '';
+  const cats = Array.isArray(p.categories) ? p.categories.join(' › ') : p.categories || '';
+  const seller = p.sellerName && p.sellerName !== 'N/A' ? `<div style="font-size:.67em;color:var(--text-muted);margin-top:2px">🏪 ${p.sellerName}</div>` : '';
+  const name = p.displayName || p.name || '';
+  return `<div class="product-card" data-sku="${p.sku}">
+    <div class="img-wrap">
+      <img data-src="${p.image}" alt="${name}" />
+      ${discBadge}${expressBadge}${oosBadge}
+    </div>
+    <div class="info">
+      <div class="p-name">${name}</div>
+      <div class="p-brand">${p.brand || ''}</div>
+      <div class="p-price">${p.prices ? p.prices.price : ''} <span class="p-old">${p.prices && p.prices.oldPrice ? p.prices.oldPrice : ''}</span></div>
+      ${rating}
+      ${seller}
+      <div class="p-sku">${p.sku}</div>
+    </div>
+    <button class="del-btn" data-sku="${p.sku}" title="Remove">✕</button>
+  </div>`;
+}
+
+/* ========================
+   SKU OUTPUT
+======================== */
+function updateSKUOutput(skus) {
+  $('#out-comma').value = skus.join(',');
+  $('#out-newline').value = skus.join('\n');
+  updateStatus(state.currentPage, state.lastPage, skus.length);
+}
+
+/* ========================
+   FILTERING
+======================== */
+function applyFilters() {
+  let result = [...state.original];
+
+  const discount = $('#f-discount').value;
+  if (discount !== '0') {
+    const [mn, mx] = discount.split('-').map(Number);
+    result = result.filter(p => {
+      const d = parseInt(p.prices && p.prices.discount || 0);
+      return d >= mn && d <= mx;
+    });
+  }
+
+  const rating = $('#f-rating').value;
+  if (rating !== '0') {
+    const [rMin, rMax] = rating.split('-').map(Number);
+    result = result.filter(p => {
+      const r = parseFloat(p.rating && p.rating.average || 0);
+      if (rMin === 0 && rMax === 0) return r === 0;
+      return r >= rMin && r <= rMax;
+    });
+  }
+
+  const oos = $('#f-oos').value;
+  if (oos === 'valid') result = result.filter(p => !p._oos && p.brand !== 'oos');
+  if (oos === 'oos') result = result.filter(p => p._oos || p.brand === 'oos');
+
+  const category = $('#f-category').value;
+  if (category !== '0') result = result.filter(p => {
+    const c = Array.isArray(p.categories) ? p.categories[0] : p.categories;
+    return c === category;
+  });
+
+  const brand = $('#f-brand').value;
+  if (brand !== '0') result = result.filter(p => p.brand === brand);
+
+  const seller = $('#f-seller').value;
+  if (seller !== '0') result = result.filter(p => p.sellerName === seller);
+
+  // Tag filters
+  if (state.activeTags.has('express')) result = result.filter(p => p.isShopExpress);
+  if (state.activeTags.has('global')) result = result.filter(p => p.isShopGlobal);
+  if (state.activeTags.has('official')) result = result.filter(p => p.sellerName && p.sellerName.toLowerCase().includes('official'));
+
+  // Sort
+  result = sortData(result, state.sortField, state.sortDir);
+
+  state.data = result;
+  renderProducts(state.data);
+  updateSKUOutput(state.data.map(p => p.sku));
+  updateExportButtons();
+}
+
+function sortData(arr, field, dir) {
+  return [...arr].sort((a, b) => {
+    let va, vb;
+    if (field === 'price') {
+      va = parsePrice(a.prices && a.prices.price || '0');
+      vb = parsePrice(b.prices && b.prices.price || '0');
+    } else if (field === 'discount') {
+      va = parseInt(a.prices && a.prices.discount || 0);
+      vb = parseInt(b.prices && b.prices.discount || 0);
+    } else if (field === 'rating') {
+      va = parseFloat(a.rating && a.rating.average || 0);
+      vb = parseFloat(b.rating && b.rating.average || 0);
+    }
+    return dir === 'asc' ? va - vb : vb - va;
+  });
+}
+
+function parsePrice(str) {
+  return parseFloat((str || '').replace(/[^0-9.]/g, '')) || 0;
+}
+
+/* ========================
+   KEYWORD FILTER
+======================== */
+function filterByKeyword() {
+  const kw = $('#keyword-input').value.trim().toLowerCase();
+  if (!kw) return;
+  state.data = state.original.filter(p => {
+    const name = (p.displayName || p.name || '').toLowerCase();
+    const brand = (p.brand || '').toLowerCase();
+    const cats = (Array.isArray(p.categories) ? p.categories.join(' ') : p.categories || '').toLowerCase();
+    return name.includes(kw) || brand.includes(kw) || cats.includes(kw);
+  });
+  renderProducts(state.data);
+  updateSKUOutput(state.data.map(p => p.sku));
+  updateExportButtons();
+}
+
+/* ========================
+   SHUFFLE & RESTORE
+======================== */
+function shuffle() {
+  state.data = [...state.data].sort(() => Math.random() - 0.5);
+  renderProducts(state.data);
+  updateSKUOutput(state.data.map(p => p.sku));
+}
+function restore() {
+  state.data = [...state.original];
+  resetFilterUI();
+  state.activeTags = new Set();
+  $$('.filter-tag').forEach(t => t.classList.remove('active'));
+  renderProducts(state.data);
+  updateSKUOutput(state.data.map(p => p.sku));
+  updateExportButtons();
+}
+function resetFilterUI() {
+  ['#f-discount','#f-rating','#f-oos','#f-category','#f-brand','#f-seller'].forEach(s => {
+    const el = $(s); if (el) el.value = '0';
+  });
+}
+
+/* ========================
+   RESET STATE
+======================== */
+function resetState() {
+  state.data = []; state.original = [];
+  state.currentPage = 1;
+  $('#products-grid').innerHTML = '';
+  $('#products-grid').style.display = 'none';
+  $('#empty-state').style.display = 'flex';
+  $('#empty-state').querySelector('p').textContent = 'Fetching data…';
+  updateSKUOutput([]);
+  resetFilterUI();
+  state.activeTags = new Set();
+  $$('.filter-tag').forEach(t => t.classList.remove('active'));
+  updateExportButtons();
+}
+
+/* ========================
+   CSV EXPORT
+======================== */
+function buildCSVRow(p, extended = false) {
+  const name = p.displayName || p.name || '';
+  const cats = Array.isArray(p.categories) ? p.categories.join(' > ') : p.categories || '';
+  const catL1 = Array.isArray(p.categories) ? p.categories[0] : (p.categories || '');
+  const oldP = p.prices && p.prices.oldPrice ? p.prices.oldPrice : (p.prices && p.prices.price || '');
+  const newP = p.prices && p.prices.price || '';
+  const disc = p.prices && p.prices.discount || '0';
+  const rat = p.rating && p.rating.average || '';
+  const totalRat = p.rating && p.rating.totalRatings || '';
+  const img = p.image || '';
+  const url = p.url ? state.domain + p.url : '';
+  const express = p.isShopExpress ? 'Yes' : 'No';
+  const global_ = p.isShopGlobal ? 'Yes' : 'No';
+  const seller = p.sellerName || 'N/A';
+  const brand = p.brand || '';
+
+  const base = [p.sku, name, brand, cats, catL1, oldP, newP, disc+'%', express, global_, rat, totalRat, seller, img, url];
+  return base.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+}
+
+function exportCSV(extended = false) {
+  const headers = ['SKU','Name','Brand','Categories','Category L1','Old Price','New Price','Discount','Jumia Express','Global','Avg Rating','Total Ratings','Seller','Image','URL'];
+  const rows = [headers.join(','), ...state.data.map(p => buildCSVRow(p, extended))];
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `jumia-skus-${Date.now()}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('CSV exported!', 'success');
+}
+
+function updateExportButtons() {
+  const has = state.data.length > 0;
+  $('#btn-export-csv').disabled = !has;
+  $('#btn-export-all').disabled = !has;
+  if (has) {
+    $('#export-bar').style.display = 'flex';
+    $('#export-info').textContent = `${state.data.length} products ready to export`;
+  }
+}
+
+/* ========================
+   MODE SWITCHING
+======================== */
+function setMode(mode) {
+  state.mode = mode;
+  $('#btn-find').classList.toggle('active', mode === 'find');
+  $('#btn-preview').classList.toggle('active', mode === 'preview');
+  $('#find-controls').style.display = mode === 'find' ? '' : 'none';
+  $('#preview-controls').style.display = mode === 'preview' ? '' : 'none';
+
+  if (mode === 'find') {
+    $('#st-page-lbl').textContent = 'Page';
+    $('#st-max-lbl').textContent = 'Max Page';
+  } else {
+    $('#st-page-lbl').textContent = 'Fetched';
+    $('#st-max-lbl').textContent = 'OOS';
+  }
+  resetState();
+}
+
+/* ========================
+   CLIPBOARD
+======================== */
+function copyText(targetId) {
+  const el = $('#' + targetId);
+  el.select(); document.execCommand('copy');
+  toast('Copied to clipboard!', 'success');
+}
+
+/* ========================
+   UTILITIES
+======================== */
+function isValidUrl(s) {
+  try { const u = new URL(s); return u.protocol.startsWith('http'); }
+  catch(e) { return false; }
+}
+
+/* ========================
+   EVENT LISTENERS
+======================== */
+$('#btn-find').addEventListener('click', () => setMode('find'));
+$('#btn-preview').addEventListener('click', () => setMode('preview'));
+$('#country').addEventListener('change', syncDomain);
+$('#country-preview').addEventListener('change', syncDomainPreview);
+$('#find-btn').addEventListener('click', beginFind);
+$('#preview-btn').addEventListener('click', beginPreview);
+$('#btn-shuffle').addEventListener('click', shuffle);
+$('#btn-restore').addEventListener('click', restore);
+$('#btn-keyword').addEventListener('click', filterByKeyword);
+$('#keyword-input').addEventListener('keyup', e => { if (e.key === 'Enter') filterByKeyword(); });
+
+$('#btn-export-csv').addEventListener('click', () => exportCSV(false));
+$('#btn-export-all').addEventListener('click', () => exportCSV(true));
+
+['#f-discount','#f-rating','#f-oos','#f-category','#f-brand','#f-seller'].forEach(s => {
+  $(s).addEventListener('change', applyFilters);
+});
+
+$('#f-sort-field').addEventListener('change', () => {
+  state.sortField = $('#f-sort-field').value;
+  applyFilters();
+});
+$('#f-sort-dir').addEventListener('change', () => {
+  state.sortDir = $('#f-sort-dir').value;
+  applyFilters();
+});
+
+$$('.filter-tag').forEach(tag => {
+  tag.addEventListener('click', () => {
+    const t = tag.dataset.tag;
+    if (state.activeTags.has(t)) { state.activeTags.delete(t); tag.classList.remove('active'); }
+    else { state.activeTags.add(t); tag.classList.add('active'); }
+    applyFilters();
+  });
+});
+
+$$('.sku-copy').forEach(btn => {
+  btn.addEventListener('click', () => copyText(btn.dataset.target));
+});
+
+// Sync textarea comma <-> newline in preview mode
+$('#sku-input').addEventListener('input', () => {
+  // normalize
+});
+</script>
+</body>
+</html>
